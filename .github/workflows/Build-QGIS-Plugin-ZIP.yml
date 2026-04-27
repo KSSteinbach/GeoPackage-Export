@@ -13,7 +13,7 @@ on:
       plugin_dir:
         description: "Pfad zum Plugin-Ordner im Repo"
         required: true
-        default: "github_plugin_sync"
+        default: "GeoPackage_Export"
       zip_base:
         description: "Basisname der ZIP (ohne Version, ohne .zip) – leer = Ordnername"
         required: false
