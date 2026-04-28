@@ -70,7 +70,7 @@ jobs:
           fi
 
           STAMP="$(TZ=Europe/Berlin date +'%Y%m%d-%H%M%S')"
-          ZIP_FILE="${BASE}_v${VERSION}_${STAMP}.zip"
+          ZIP_FILE="${BASE}_v${VERSION}_packedforQGIS_${STAMP}.zip"
           
           # sicherstellen, dass Plugin-Ordner existiert
           test -d "$GITHUB_WORKSPACE/${PLUGIN_DIR}"
