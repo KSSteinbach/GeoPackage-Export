@@ -112,4 +112,4 @@ class GpkgExportPlugin:
         """
         from .gui.main_dialog import GpkgExportDialog
         dlg = GpkgExportDialog(self.iface)
-        dlg.exec_()
+        dlg.exec()

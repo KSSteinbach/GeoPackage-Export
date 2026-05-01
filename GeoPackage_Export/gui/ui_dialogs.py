@@ -47,15 +47,18 @@ def ask_yes_no(
     Returns:
         True, wenn der Nutzer „Ja" gewählt hat; sonst False.
     """
-    default_button = QMessageBox.No if default_no else QMessageBox.Yes
+    default_button = (
+        QMessageBox.StandardButton.No if default_no
+        else QMessageBox.StandardButton.Yes
+    )
     reply = QMessageBox.question(
         parent,
         title,
         text,
-        QMessageBox.Yes | QMessageBox.No,
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         default_button,
     )
-    return reply == QMessageBox.Yes
+    return reply == QMessageBox.StandardButton.Yes
 
 
 def pick_directory(

@@ -64,6 +64,41 @@ WFS_PROVIDER = "WFS"
 OAPIF_PROVIDER = "OAPIF"
 
 
+def _integer_field_type_codes() -> set:
+    """Numerische Qt-Typcodes für Ganzzahl-Felder.
+
+    QGIS 3 liefert ``QgsField.type()`` als ``QVariant.Type``; QGIS 4
+    liefert ``QMetaType.Type``. Beide nutzen dieselbe Qt-Typnummerierung
+    (Int=2, UInt=3, LongLong=4, ULongLong=5), daher reicht ein
+    int-basierter Vergleich. Wir sammeln aus beiden Quellen, falls eine
+    der beiden Versionen bestimmte Aliase nicht mehr exportiert.
+    """
+    codes: set = set()
+    for name in ("Int", "UInt", "LongLong", "ULongLong"):
+        v = getattr(QVariant, name, None)
+        if v is not None:
+            try:
+                codes.add(int(v))
+            except (TypeError, ValueError):
+                pass
+    try:
+        from qgis.PyQt.QtCore import QMetaType
+        scope = getattr(QMetaType, "Type", QMetaType)
+        for name in ("Int", "UInt", "LongLong", "ULongLong"):
+            v = getattr(scope, name, None)
+            if v is not None:
+                try:
+                    codes.add(int(v))
+                except (TypeError, ValueError):
+                    pass
+    except ImportError:
+        pass
+    return codes
+
+
+_INTEGER_FIELD_TYPE_CODES = _integer_field_type_codes()
+
+
 @dataclass
 class LayerJob:
     """Thread-sicherer Snapshot eines Layers für den Export-Worker.
@@ -204,16 +239,16 @@ class GpkgExporter:
 
             if mode == "multi":
                 gpkg_path = multi_paths[layer.id()]
-                action = QgsVectorFileWriter.CreateOrOverwriteFile
+                action = QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteFile
             elif mode == "single":
                 gpkg_path = out_path
                 action = (
-                    QgsVectorFileWriter.CreateOrOverwriteFile if i == 0
-                    else QgsVectorFileWriter.CreateOrOverwriteLayer
+                    QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteFile if i == 0
+                    else QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
                 )
             else:  # append
                 gpkg_path = out_path
-                action = QgsVectorFileWriter.CreateOrOverwriteLayer
+                action = QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
 
             options = QgsVectorFileWriter.SaveVectorOptions()
             options.driverName = DRIVER_GPKG
@@ -373,12 +408,10 @@ class GpkgExporter:
         fields = getattr(layer, "fields", lambda: None)()
         if fields is None:
             return []
-        integer_types = (
-            QVariant.Int, QVariant.UInt, QVariant.LongLong, QVariant.ULongLong
-        )
         names_lower = {f.name().lower() for f in fields}
         conflict = any(
-            f.name().lower() == "fid" and f.type() not in integer_types
+            f.name().lower() == "fid"
+            and int(f.type()) not in _INTEGER_FIELD_TYPE_CODES
             for f in fields
         )
         if not conflict:
@@ -614,7 +647,7 @@ class GpkgExportTask(QgsTask):
         exporter: "GpkgExporter",
         on_finished_cb: Callable[[List[str]], None],
     ):
-        super().__init__(description, QgsTask.CanCancel)
+        super().__init__(description, QgsTask.Flag.CanCancel)
         self._jobs = jobs
         self._exporter = exporter
         self._on_finished_cb = on_finished_cb
@@ -656,7 +689,7 @@ class GpkgExportTask(QgsTask):
             err_code, err_msg, _, _ = QgsVectorFileWriter.writeAsVectorFormatV3(
                 job.layer, job.gpkg_path, QgsCoordinateTransformContext(), job.options
             )
-            if err_code != QgsVectorFileWriter.NoError:
+            if err_code != QgsVectorFileWriter.WriterError.NoError:
                 self._errors.append(
                     self.tr("• %s: %s") % (job.export_name, err_msg)
                 )

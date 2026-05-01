@@ -230,8 +230,8 @@ class GpkgExportDialog(QDialog):
         root.addWidget(title)
 
         sep = QFrame()
-        sep.setFrameShape(QFrame.HLine)
-        sep.setFrameShadow(QFrame.Sunken)
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShadow(QFrame.Shadow.Sunken)
         root.addWidget(sep)
 
         self.grp_layers = QGroupBox(self.tr("1  Select temporary layers"))
@@ -258,7 +258,7 @@ class GpkgExportDialog(QDialog):
         vl.addWidget(hint)
 
         self.layer_list = QListWidget()
-        self.layer_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.layer_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.layer_list.setAlternatingRowColors(True)
         self.layer_list.setMinimumHeight(120)
         # Selektionsfarbe auch bei fehlendem Fokus beibehalten, damit
@@ -267,13 +267,17 @@ class GpkgExportDialog(QDialog):
         self.layer_list.setStyleSheet(
             "QListWidget::item:selected {"
             " background-color: #005eae;"
-            " color: white;"
+            " color: #FFFFFF;"
             "}"
             "QListWidget::item:selected:!active {"
             " background-color: #005eae;"
-            " color: white;"
+            " color: #FFFFFF;"
             "}"
         )
+        # Custom row widgets (siehe ``_make_layer_row_widget``) erben die
+        # Selektions-Textfarbe der QListWidget-Items nicht, deshalb manuell
+        # umfärben, sobald sich die Auswahl ändert.
+        self.layer_list.itemSelectionChanged.connect(self._update_layer_row_colors)
         vl.addWidget(self.layer_list)
 
         self.remote_info_label = QLabel(
@@ -287,8 +291,8 @@ class GpkgExportDialog(QDialog):
         self.remote_info_label.setVisible(False)
         vl.addWidget(self.remote_info_label)
 
-        btn_row  = QHBoxLayout()
-        btn_all  = QPushButton(self.tr("Select all"))
+        btn_row = QHBoxLayout()
+        btn_all = QPushButton(self.tr("Select all"))
         btn_none = QPushButton(self.tr("Clear selection"))
         btn_all.clicked.connect(self.layer_list.selectAll)
         btn_none.clicked.connect(self.layer_list.clearSelection)
@@ -304,7 +308,7 @@ class GpkgExportDialog(QDialog):
         vl2 = QVBoxLayout(grp_mode)
 
         self.radio_single = QRadioButton(self.tr("Save all selected layers into a single GeoPackage"))
-        self.radio_multi  = QRadioButton(self.tr("Save each layer into its own GeoPackage"))
+        self.radio_multi = QRadioButton(self.tr("Save each layer into its own GeoPackage"))
         self.radio_append = QRadioButton(self.tr("Add layers to an existing GeoPackage"))
         self.radio_single.setChecked(True)
 
@@ -351,19 +355,19 @@ class GpkgExportDialog(QDialog):
         multi_layout = QVBoxLayout(self.multi_widget)
         multi_layout.setContentsMargins(0, 0, 0, 0)
 
-        dir_row  = QHBoxLayout()
+        dir_row = QHBoxLayout()
         self.dir_edit = QLineEdit()
         self.dir_edit.setPlaceholderText(self.tr("Choose target directory …"))
-        btn_dir  = QPushButton(self.tr("Browse …"))
+        btn_dir = QPushButton(self.tr("Browse …"))
         btn_dir.clicked.connect(self._pick_directory)
         dir_row.addWidget(QLabel(self.tr("Directory:")))
         dir_row.addWidget(self.dir_edit, 1)
         dir_row.addWidget(btn_dir)
         multi_layout.addLayout(dir_row)
 
-        name_row          = QHBoxLayout()
-        self.name_label   = QLabel(self.tr("Filename prefix:"))
-        self.name_edit    = QLineEdit()
+        name_row = QHBoxLayout()
+        self.name_label = QLabel(self.tr("Filename prefix:"))
+        self.name_edit = QLineEdit()
         self.name_edit.setPlaceholderText(self.tr("e.g.  export_"))
         name_row.addWidget(self.name_label)
         name_row.addWidget(self.name_edit, 1)
@@ -388,10 +392,10 @@ class GpkgExportDialog(QDialog):
         append_hint.setStyleSheet("color: grey; font-size: 10px;")
         append_layout.addWidget(append_hint)
 
-        gpkg_row          = QHBoxLayout()
-        self.gpkg_edit    = QLineEdit()
+        gpkg_row = QHBoxLayout()
+        self.gpkg_edit = QLineEdit()
         self.gpkg_edit.setPlaceholderText(self.tr("Path to existing .gpkg file …"))
-        btn_gpkg          = QPushButton(self.tr("Browse …"))
+        btn_gpkg = QPushButton(self.tr("Browse …"))
         btn_gpkg.clicked.connect(self._pick_existing_gpkg)
         gpkg_row.addWidget(QLabel(self.tr("GeoPackage:")))
         gpkg_row.addWidget(self.gpkg_edit, 1)
@@ -402,8 +406,8 @@ class GpkgExportDialog(QDialog):
         root.addWidget(self.grp_file)
 
         sep2 = QFrame()
-        sep2.setFrameShape(QFrame.HLine)
-        sep2.setFrameShadow(QFrame.Sunken)
+        sep2.setFrameShape(QFrame.Shape.HLine)
+        sep2.setFrameShadow(QFrame.Shadow.Sunken)
         root.addWidget(sep2)
 
         self.chk_replace = QCheckBox(
@@ -420,10 +424,10 @@ class GpkgExportDialog(QDialog):
         )
         root.addWidget(self.chk_replace)
 
-        btn_row2          = QHBoxLayout()
+        btn_row2 = QHBoxLayout()
         btn_row2.addStretch()
-        btn_cancel        = QPushButton(self.tr("Cancel"))
-        self.btn_save     = QPushButton(self.tr("🖫 Save"))
+        btn_cancel = QPushButton(self.tr("Cancel"))
+        self.btn_save = QPushButton(self.tr("🖫 Save"))
         self.btn_save.setDefault(True)
         self.btn_save.setStyleSheet(
             "QPushButton { background-color: #005eae; color: white;"
@@ -469,7 +473,8 @@ class GpkgExportDialog(QDialog):
                 else self.tr("⚠  No vector layers found in the project.")
             )
             item = QListWidgetItem(msg)
-            item.setFlags(Qt.NoItemFlags)
+            no_flags = getattr(Qt, "NoItemFlags", Qt.ItemFlag.NoItemFlags)
+            item.setFlags(no_flags)
             self.layer_list.addItem(item)
             self.btn_save.setEnabled(False)
             self.remote_info_label.setVisible(False)
@@ -482,7 +487,7 @@ class GpkgExportDialog(QDialog):
         row_widgets = []
         for layer in layers:
             item = QListWidgetItem()
-            item.setData(Qt.UserRole, layer)
+            item.setData(Qt.ItemDataRole.UserRole, layer)
             self.layer_list.addItem(item)
             row_widget = self._make_layer_row_widget(layer)
             self.layer_list.setItemWidget(item, row_widget)
@@ -536,12 +541,12 @@ class GpkgExportDialog(QDialog):
             """Eine einzelne Icon-Zelle mit fester Breite bauen."""
             lbl = QLabel()
             lbl.setFixedWidth(ICON_COL_WIDTH)
-            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             if not icon.isNull():
                 lbl.setPixmap(icon.pixmap(ICON_PIXMAP_SIZE, ICON_PIXMAP_SIZE))
             elif fallback_text:
                 lbl.setText(fallback_text)
-            lbl.setAttribute(Qt.WA_TransparentForMouseEvents)
+            lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
             return lbl
 
         if is_temp:
@@ -555,7 +560,7 @@ class GpkgExportDialog(QDialog):
 
         provider_name = layer.dataProvider().name()
         name_lbl = QLabel(f"{layer.name()}  ({provider_name})")
-        name_lbl.setAttribute(Qt.WA_TransparentForMouseEvents)
+        name_lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         hl.addWidget(name_lbl, 1)
 
         if is_remote:
@@ -564,6 +569,16 @@ class GpkgExportDialog(QDialog):
             self._remote_mode_combos[layer.id()] = combo
 
         return row
+
+    def _update_layer_row_colors(self):
+        for i in range(self.layer_list.count()):
+            item = self.layer_list.item(i)
+            widget = self.layer_list.itemWidget(item)
+            if widget is None:
+                continue
+            style = "color: #FFFFFF;" if item.isSelected() else ""
+            for lbl in widget.findChildren(QLabel):
+                lbl.setStyleSheet(style)
 
     def _build_remote_combo(self, layer) -> QComboBox:
         """Baut die Export-Strategie-Combo für einen WFS-/OGC-API-Layer.
@@ -718,7 +733,7 @@ class GpkgExportDialog(QDialog):
 
         # In der Zwischenzeit gelöschte Layer werfen beim Zugriff eine
         # RuntimeError – raus damit, statt später im Worker zu crashen.
-        raw_layers = [item.data(Qt.UserRole) for item in selected_items]
+        raw_layers = [item.data(Qt.ItemDataRole.UserRole) for item in selected_items]
         layers = []
         for layer in raw_layers:
             try:
@@ -975,7 +990,7 @@ class GpkgExportDialog(QDialog):
 
         box = QMessageBox(self)
         box.setWindowTitle(self.tr("Layers with identical names found"))
-        box.setIcon(QMessageBox.Warning)
+        box.setIcon(QMessageBox.Icon.Warning)
         box.setText(
             self.tr(
                 "The selection contains %d layer names that appear multiple times:\n\n%s\n\n"
@@ -989,16 +1004,16 @@ class GpkgExportDialog(QDialog):
                 "• Cancel:  the dialog stays open, layers can be renamed manually in the project"
             )
         )
-        btn_index  = box.addButton(self.tr("Auto-index"), QMessageBox.AcceptRole)
-        btn_cancel = box.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+        btn_index = box.addButton(self.tr("Auto-index"), QMessageBox.ButtonRole.AcceptRole)
+        btn_cancel = box.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
         box.setDefaultButton(btn_index)
-        box.exec_()
+        box.exec()
 
         if box.clickedButton() is btn_cancel:
             return None
 
         used_names = set()
-        name_map   = {}
+        name_map = {}
         occurrence = {}
 
         for layer in layers:

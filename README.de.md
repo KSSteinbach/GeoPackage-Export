@@ -63,6 +63,8 @@ GeoPackage-Export/                ← Repo-Root (README, LICENSE, CI)
     └── i18n/                     Übersetzungen (.ts / .qm / JSON-Mapping)
 ```
 
-## Mindest-QGIS-Version
+## QGIS-Version
 
-3.28
+min: 3.28 ...
+max: 3.99 
+(Qgis 4.xx wird nicht unterstützt)
