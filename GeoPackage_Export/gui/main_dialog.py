@@ -13,7 +13,6 @@ import os
 from qgis.core import (
     Qgis,
     QgsApplication,
-    QgsWkbTypes,
 )
 from qgis.PyQt.QtWidgets import (
     QDialog,
@@ -108,13 +107,12 @@ def _geom_icon(layer) -> str:
     Returns:
         Einzeln-Zeichen-String: Punkt, Linie, Polygon oder „sonst".
     """
-    wkb = layer.wkbType()
-    gtype = QgsWkbTypes.geometryType(wkb)
-    if gtype == QgsWkbTypes.PointGeometry:
+    gtype = layer.geometryType()
+    if gtype == Qgis.GeometryType.Point:
         return "⠮"
-    if gtype == QgsWkbTypes.LineGeometry:
+    if gtype == Qgis.GeometryType.Line:
         return "〽"
-    if gtype == QgsWkbTypes.PolygonGeometry:
+    if gtype == Qgis.GeometryType.Polygon:
         return "⏢"
     return "◈"
 
@@ -129,11 +127,11 @@ def _geom_theme_icon(layer) -> QIcon:
         Passendes ``QIcon`` (Punkt/Linie/Polygon) oder ein leeres
         ``QIcon``, wenn der Typ unbekannt ist.
     """
-    gtype = QgsWkbTypes.geometryType(layer.wkbType())
+    gtype = layer.geometryType()
     name = {
-        QgsWkbTypes.PointGeometry: "mIconPointLayer.svg",
-        QgsWkbTypes.LineGeometry: "mIconLineLayer.svg",
-        QgsWkbTypes.PolygonGeometry: "mIconPolygonLayer.svg",
+        Qgis.GeometryType.Point: "mIconPointLayer.svg",
+        Qgis.GeometryType.Line: "mIconLineLayer.svg",
+        Qgis.GeometryType.Polygon: "mIconPolygonLayer.svg",
     }.get(gtype)
     return QgsApplication.getThemeIcon(f"/{name}") if name else QIcon()
 
@@ -608,14 +606,14 @@ class GpkgExportDialog(QDialog):
             combo.setItemData(
                 sel_idx,
                 self.tr("No features are currently selected in this layer."),
-                Qt.ToolTipRole,
+                Qt.ItemDataRole.ToolTipRole,
             )
 
         full_idx = combo.findData(EXPORT_MODE_FULL)
         combo.setItemData(
             full_idx,
             self.tr("⚠ Warning: Large WFS services will load all features from the server."),
-            Qt.ToolTipRole,
+            Qt.ItemDataRole.ToolTipRole,
         )
 
         combo.setToolTip(

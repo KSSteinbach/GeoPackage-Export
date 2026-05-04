@@ -17,7 +17,6 @@ bleibt.
 """
 
 import os
-import sqlite3
 import threading
 import time
 from dataclasses import dataclass
@@ -530,7 +529,13 @@ class GpkgExporter:
         if not style_doc.isNull():
             import_layer_style(gpkg_layer, style_doc)
 
-        err_msg = gpkg_layer.saveStyleToDatabase(export_name, "", True, "")
+        # saveStyleToDatabase() ist seit QGIS 3.44 deprecated; saveStyleToDatabaseV2()
+        # ist dort und in QGIS 4 die offizielle API. Für ältere QGIS-Versionen
+        # (3.28–3.42) fällt der Aufruf zurück auf die alte Methode.
+        if hasattr(gpkg_layer, "saveStyleToDatabaseV2"):
+            _, err_msg = gpkg_layer.saveStyleToDatabaseV2(export_name, "", True, "")
+        else:
+            err_msg = gpkg_layer.saveStyleToDatabase(export_name, "", True, "")
         if err_msg:
             log_message(
                 self.tr("Style could not be written to GeoPackage ('%s'): %s") % (export_name, err_msg),
@@ -557,6 +562,20 @@ class GpkgExporter:
                 Layernamen – nur für die wird aufgeräumt.
         """
         if not written:
+            return
+
+        # sqlite3 wird hier lokal importiert: Manche QGIS-Windows-Builds
+        # liefern keine funktionierende sqlite3-Standardbibliothek mit; ein
+        # fehlgeschlagener Import darf das Plugin nicht beim Laden blockieren.
+        # Der Style-Fix ist ein Extra (Daten und Stil sind bereits geschrieben).
+        try:
+            import sqlite3
+        except ImportError as exc:
+            log_message(
+                self.tr("layer_styles fix-up skipped: sqlite3 not available (%s)")
+                % exc,
+                Qgis.Warning,
+            )
             return
 
         last_err = None
